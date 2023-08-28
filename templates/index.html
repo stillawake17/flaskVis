@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Date</title>
+</head>
+<body>
+    <form action="/" method="post">
+        <label for="date">Select a date:</label>
+        <input type="date" id="date" name="selected_date">
+        <input type="submit" value="Submit">
+    </form>
+    {% if plot_url %}
+    <img src="data:image/png;base64,{{ plot_url }}" alt="plot">
+    {% endif %}
+    <!-- Logic for displaying charts will go here -->
+</body>
+</html>
