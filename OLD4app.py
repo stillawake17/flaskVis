@@ -7,38 +7,37 @@ import base64
 import pandas as pd
 import logging
 
-app = Flask(__name__)
+# Initialize logging
 logging.basicConfig(level=logging.INFO)
+
+app = Flask(__name__)
 
 def load_and_process_data(selected_date):
     logging.info(f"Selected date: {selected_date}")
-
-    # Loading the dataset for arrivals
-    #df = pd.read_excel("/mnt/data/Arrivals_August.xlsx")
+    
     df = pd.read_excel("C:/Users/josti/OneDrive/Documents/01 - Joanna/Local council/0000 - Bristol Airport/Arrivals_August.xlsx")
     
-    # Convert LandedDate and LandedTime to a single datetime column
+    # Combine LandedDate and LandedTime into a single datetime column
     df["FullLandedTime"] = pd.to_datetime(df["LandedDate"].astype(str) + ' ' + df["LandedTime"])
-
-    # Filter the data by the selected date
+    
     df = df[df["FullLandedTime"].dt.date == pd.to_datetime(selected_date).date()]
     logging.info(f"Data shape after filtering by selected date: {df.shape}")
-
-    # Extract the hour and minute information
+    
     df["Hour"] = df["FullLandedTime"].dt.hour
     df["Minute"] = df["FullLandedTime"].dt.minute
 
-    # Categorize flights by time
     df["Time_Category"] = "Regular arrivals"
     df.loc[(df["Hour"] == 23) & (df["Minute"] < 30), "Time_Category"] = "Shoulder hour flights"
     df.loc[(df["Hour"] == 23) & (df["Minute"] >= 30), "Time_Category"] = "Night hour arrivals"
     df.loc[(df["Hour"] < 6), "Time_Category"] = "Night hour arrivals"
     df.loc[(df["Hour"] == 6), "Time_Category"] = "Shoulder hour flights"
 
-    start_date_arr = df["FullLandedTime"].dt.date.min()
-    end_date_arr = df["FullLandedTime"].dt.date.max()
+    df.dropna(subset=['FullLandedTime'], inplace=True)
+    
+    start_date_arr = df["FullLandedTime"].dt.date.min() if not df.empty else None
+    end_date_arr = df["FullLandedTime"].dt.date.max() if not df.empty else None
     logging.info(f"Start Date: {start_date_arr}, End Date: {end_date_arr}")
-
+    
     return df, start_date_arr, end_date_arr
 
 def generate_plot(df, start_date_arr, end_date_arr):
@@ -46,27 +45,30 @@ def generate_plot(df, start_date_arr, end_date_arr):
 
     # Load the entire dataset to calculate total percentages
     df_total = pd.read_excel("C:/Users/josti/OneDrive/Documents/01 - Joanna/Local council/0000 - Bristol Airport/Arrivals_August.xlsx")
-    
-    #df_total = pd.read_excel("/mnt/data/Arrivals_August.xlsx")
     df_total["FullLandedTime"] = pd.to_datetime(df_total["LandedDate"].astype(str) + ' ' + df_total["LandedTime"])
     df_total["Hour"] = df_total["FullLandedTime"].dt.hour
     df_total["Minute"] = df_total["FullLandedTime"].dt.minute
+
     df_total["Time_Category"] = "Regular arrivals"
     df_total.loc[(df_total["Hour"] == 23) & (df_total["Minute"] < 30), "Time_Category"] = "Shoulder hour flights"
     df_total.loc[(df_total["Hour"] == 23) & (df_total["Minute"] >= 30), "Time_Category"] = "Night hour arrivals"
     df_total.loc[(df_total["Hour"] < 6), "Time_Category"] = "Night hour arrivals"
     df_total.loc[(df_total["Hour"] == 6), "Time_Category"] = "Shoulder hour flights"
 
-    # Calculate percentages for entire dataset
+    # Calculate the percentages for the entire dataset
     total_counts = df_total["Time_Category"].value_counts()
     total_percentages = (total_counts / total_counts.sum()) * 100
 
-    # Calculate percentages for specific date
+    # Calculate the percentages for the specific date
     latest_day_counts = df["Time_Category"].value_counts()
     latest_day_percentages = (latest_day_counts / latest_day_counts.sum()) * 100
+
+    # Fill any missing categories with 0 for the specific date (to ensure consistent plotting)
     for category in total_counts.index:
         if category not in latest_day_percentages:
             latest_day_percentages[category] = 0.0
+
+    # Ensure the order is consistent between total and specific date percentages
     total_percentages = total_percentages.reindex(latest_day_percentages.index)
 
     color_map = {
@@ -92,12 +94,12 @@ def generate_plot(df, start_date_arr, end_date_arr):
     
     return plot_url
 
+
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     plot_url = None
     message = None
-    summary = None
-
     if request.method == 'POST':
         selected_date = request.form['selected_date']
         df, start_date_arr, end_date_arr = load_and_process_data(selected_date)
@@ -105,40 +107,8 @@ def index():
             message = f"No data found for the selected date: {selected_date}"
         else:
             plot_url = generate_plot(df, start_date_arr, end_date_arr)
-
-             # Load the entire dataset to calculate total percentages
-            df_total = pd.read_excel("C:/Users/josti/OneDrive/Documents/01 - Joanna/Local council/0000 - Bristol Airport/Arrivals_August.xlsx")
-            df_total["FullLandedTime"] = pd.to_datetime(df_total["LandedDate"].astype(str) + ' ' + df_total["LandedTime"])
-            df_total["Hour"] = df_total["FullLandedTime"].dt.hour
-            df_total["Minute"] = df_total["FullLandedTime"].dt.minute
-            df_total["Time_Category"] = "Regular arrivals"
-            df_total.loc[(df_total["Hour"] == 23) & (df_total["Minute"] < 30), "Time_Category"] = "Shoulder hour flights"
-            df_total.loc[(df_total["Hour"] == 23) & (df_total["Minute"] >= 30), "Time_Category"] = "Night hour arrivals"
-            df_total.loc[(df_total["Hour"] < 6), "Time_Category"] = "Night hour arrivals"
-            df_total.loc[(df_total["Hour"] == 6), "Time_Category"] = "Shoulder hour flights"
-
-            # Calculate total percentages
-            total_counts = df_total["Time_Category"].value_counts()
-            total_percentages = ((total_counts / total_counts.sum()) * 100).round(1)
-
-            # Calculate day percentages
-            day_counts = df["Time_Category"].value_counts()
-            day_percentages = ((day_counts / day_counts.sum()) * 100).round(1)
-
-            # Create summary table
-            summary_df = pd.DataFrame({'Number of Flights (Day)': day_counts, 'Percentage (Day) %': day_percentages,
-                                       'Number of Flights (Total)': total_counts, 'Percentage (Total) %': total_percentages})
-
-            # Add total row
-            total_day_flights = day_counts.sum()
-            total_all_flights = total_counts.sum()
-            summary_df.loc['Total'] = [total_day_flights, 100, total_all_flights, 100]  # 100% since it's the total
-
-            # Convert to HTML for rendering
-            summary = summary_df.to_html(classes='summary-table')
-
-    return render_template('index.html', plot_url=plot_url, message=message, summary=summary)
-
+        
+    return render_template('index.html', plot_url=plot_url, message=message)
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -20,5 +20,15 @@
     <img src="data:image/png;base64,{{ plot_url }}" alt="plot">
     {% endif %}
     <!-- Logic for displaying charts will go here -->
+
+    <!-- ... existing content ... -->
+
+{% if summary %}
+<h3>Summary of Flight Categories</h3>
+{{ summary|safe }}
+{% endif %}
+
+<!-- ... existing content ... -->
+
 </body>
 </html>
