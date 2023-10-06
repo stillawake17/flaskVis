@@ -1,0 +1,42 @@
+
+/* Existing styles */
+body {
+    font-family: Arial, sans-serif;
+    margin: 40px;
+    background-color: #f4f4f4;
+}
+.header {
+    background-color: #333;
+    color: #fff;
+    padding: 10px 0;
+    text-align: center;
+}
+.content {
+    background-color: #fff;
+    padding: 20px;
+    margin: 20px 0;
+}
+.summary-table {
+    border-collapse: collapse;
+    width: 100%;
+}
+.summary-table th, .summary-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+.summary-table th {
+    background-color: #f2f2f2;
+}
+
+/* New styles for positioning and resizing */
+img.plot-image {
+    display: block;
+    float: left;
+    width: 60%; /* Adjust as per requirement */
+    margin-right: 20px;
+}
+.summary-table {
+    float: right;
+    width: 35%; /* Adjust as per requirement */
+}

@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Flight Data</title>
+  </head>
+  <body>
+    <h1>Flight Categories</h1>
+    {% if plot_url %}
+        <img src="data:image/png;base64,{{ plot_url }}">
+    {% else %}
+        <p>No data available</p>
+    {% endif %}
+  </body>
+</html>
