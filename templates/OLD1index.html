@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Date</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+</head>
+<body>
+    <form action="/" method="post">
+        <label for="date">Select a date:</label>
+        <input type="date" id="date" name="selected_date">
+        <input type="submit" value="Submit">
+    </form>
+
+    {% if message %}
+    <p>{{ message }}</p>
+{% endif %}
+
+    {% if plot_url %}
+    <img src="data:image/png;base64,{{ plot_url }}" alt="plot" class="plot-image">
+    {% endif %}
+    <!-- Logic for displaying charts will go here -->
+
+    {% if image_filename %}
+    <img src="{{ image_filename }}" alt="Night hour flights usage image">
+{% endif %}
+
+<h3>% of quota</h3>
+{{ night_hour_percentage }}
+
+<img src="{{ url_for('static', filename='images/' + image_filename) }}" alt="Percentage Image" class="image-plane">
+
+
+{% if summary %}
+<h3>Summary of Flight Categories</h3>
+{{ summary|safe }}
+{% endif %}
+
+
+<!-- ... existing content ... -->
+
+</body>
+</html>
