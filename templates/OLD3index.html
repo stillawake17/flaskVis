@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Date</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+<h1>Flight Data Visualization</h1>
+
+<p>Select a filter type:</p>
+<ul>
+    <li><a href="?filter_type=total">Total</a></li>
+    <li><a href="#" id="monthly">Monthly</a></li>
+    <li><a href="#" id="weekly">Weekly</a></li>
+</ul>
+
+<!-- Form for date selection when monthly or weekly is chosen -->
+<form action="/" method="get" id="dateForm" style="display:none;">
+    <label for="date">Select Date:</label>
+    <input type="date" id="date" name="selected_date">
+    <input type="hidden" id="filter_type" name="filter_type" value="monthly">
+    <input type="submit" value="Submit">
+</form>
+
+{% if message %}
+<p>{{ message }}</p>
+{% endif %}
+
+{% if plot_url %}
+<h3>Chart</h3>
+<img src="data:image/png;base64,{{ plot_url }}" alt="plot" class="plot-image">
+{% endif %}
+
+{% if summary %}
+<h3>Summary of Flight Categories</h3>
+{{ summary|safe }}
+{% endif %}
+
+
+
+
+<script>
+    document.getElementById("monthly").addEventListener("click", function() {
+        document.getElementById("dateForm").style.display = "block";
+        document.getElementById("filter_type").value = "monthly";
+    });
+
+    document.getElementById("weekly").addEventListener("click", function() {
+        document.getElementById("dateForm").style.display = "block";
+        document.getElementById("filter_type").value = "weekly";
+    });
+</script>
+
+</body>
+</html>
