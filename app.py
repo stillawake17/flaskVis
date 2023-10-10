@@ -1,62 +1,82 @@
-from flask import Flask, render_template
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import io
-import base64
+import json
 import pandas as pd
-import logging
+import matplotlib.pyplot as plt
+import plotly.express as px
+import datetime
 
-app = Flask(__name__)
-logging.basicConfig(level=logging.INFO)
+# with open('C:\\Users\\josti\\OneDrive\\Desktop\\Gitlab clone\\OpenSky\\FlightData\\combined_flights_Data.json', 'r') as file:
+    # data = json.load(file)
 
-def load_and_process_data():
-    # Loading the dataset for arrivals
-    df = pd.read_excel("C:/Users/josti/OneDrive/Documents/01 - Joanna/Local council/0000 - Bristol Airport/Arrivals_August.xlsx")
-    
-    # Convert LandedDate and LandedTime to a single datetime column
-    df["FullLandedTime"] = pd.to_datetime(df["LandedDate"].astype(str) + ' ' + df["LandedTime"])
+with open('data\combined_flights_data.json', 'r') as file:
+    data = json.load(file)
 
-    # Extract the hour and minute information
-    df["Hour"] = df["FullLandedTime"].dt.hour
-    df["Minute"] = df["FullLandedTime"].dt.minute
+df = pd.DataFrame(data)
 
-    # Categorize flights by time
-    df["Time_Category"] = "Regular arrivals"
-    df.loc[(df["Hour"] == 23) & (df["Minute"] < 30), "Time_Category"] = "Shoulder hour flights"
-    df.loc[(df["Hour"] == 23) & (df["Minute"] >= 30), "Time_Category"] = "Night hour arrivals"
-    df.loc[(df["Hour"] < 6), "Time_Category"] = "Night hour arrivals"
-    df.loc[(df["Hour"] == 6), "Time_Category"] = "Shoulder hour flights"
+# Your Unix timestamp
+timestamp = 1691710959  
 
-    return df
+# Convert to a datetime object
+dt_object = datetime.datetime.utcfromtimestamp(timestamp)
 
-def generate_plot(df):
-    logging.info("Generating plot...")
+# Optionally convert to a string in a desired format
+dt_string = dt_object.strftime('%Y-%m-%d %H:%M:%S')
 
-    # Generate a simple bar plot based on the flight categories for the selected date
-    plt.figure(figsize=(10, 6))
-    counts = df["Time_Category"].value_counts()
-    counts.plot(kind='bar', color='c')
-    plt.title("Flight Categories")
-    plt.ylabel('Number of Flights')
-    plt.xlabel('Time Category')
-    plt.tight_layout()
+# Convert the 'lastSeen' column to datetime and create a new column 'latestTime'
+df['latestTime'] = pd.to_datetime(df['lastSeen'], unit='s')
 
-    # Convert the plot to a PNG image
-    img = io.BytesIO()
-    plt.savefig(img, format='png')
-    img.seek(0)
+ # Convert LandedDate and LandedTime to a single datetime column
+ # df["FullLandedTime"] = pd.to_datetime(df["LandedDate"].astype(str) + ' ' + df["latestTime"])
 
-    # Encode the PNG image to base64 to display it in the HTML template
-    plot_url = base64.b64encode(img.getvalue()).decode()
+# Extract the hour and minute information
+df["Hour"] = df["latestTime"].dt.hour
+df["Minute"] = df["latestTime"].dt.minute
 
-    return plot_url
+ # Categorize flights by time
+df["Time_Category"] = "Regular arrivals"
+df.loc[(df["Hour"] == 23) & (df["Minute"] < 30), "Time_Category"] = "Shoulder hour flights"
+df.loc[(df["Hour"] == 23) & (df["Minute"] >= 30), "Time_Category"] = "Night hour arrivals"
+df.loc[(df["Hour"] < 6), "Time_Category"] = "Night hour arrivals"
+df.loc[(df["Hour"] == 6), "Time_Category"] = "Shoulder hour flights"
 
-@app.route('/', methods=['GET'])
-def index():
-    df = load_and_process_data()
-    plot_url = generate_plot(df)
-    return render_template('index.html', plot_url=plot_url)
+# Calculating counts
+total_flights = len(df)
+shoulder_hour_flights = len(df[df['Time_Category'] == 'Shoulder hour flights'])
+night_hour_flights = len(df[df['Time_Category'] == 'Night hour arrivals'])
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# Find the first and last date in the data
+first_date = df['latestTime'].min().strftime('%Y-%m-%d')
+last_date = df['latestTime'].max().strftime('%Y-%m-%d')
+
+# Quotas
+quotas = [85000, 3000, 4000]
+
+# Actual counts
+actual_counts = [total_flights, shoulder_hour_flights, night_hour_flights]
+
+# Categories
+categories = ['Total Flights', 'Shoulder Hour Flights', 'Night Hour Flights']
+
+# Calculating percentages
+percentages = [(count/quota)*100 for count, quota in zip(actual_counts, quotas)]
+
+# Colors
+colors = ['orange', 'green', 'yellow']
+
+# Plotting
+plt.figure(figsize=(10, 6))
+bars = plt.barh(categories, percentages, color=colors)
+
+# Adding labels
+for bar, percentage in zip(bars, percentages):
+    plt.text(bar.get_width(), bar.get_y() + bar.get_height()/2, 
+             f'{percentage:.2f}%', 
+             va='center', ha='left', fontsize=10, color='black')
+
+
+
+# Labelling and showing the plot
+plt.xlabel('Percentage (%)')
+plt.ylabel('Category')
+plt.title(f'Flight Counts as Percentage of Quotas by Category\nFrom {first_date} to {last_date}')
+plt.xlim(0, 100)  # Optional: to limit x-axis to 100%
+plt.show()
